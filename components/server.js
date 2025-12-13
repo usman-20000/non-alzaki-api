@@ -93,6 +93,13 @@ app.post("/upload-product", async (req, res) => {
     const { name, category, detail, price } = req.body;
     const file = req.body.image;
 
+    const parsedPrice = Number(price);
+
+    if (isNaN(parsedPrice)) {
+      return res.status(400).json({ error: "Invalid price" });
+    }
+
+
     if (!name || !category || !price || !detail || !file) {
       return res.status(400).json({ error: "Product and image are required" });
     }
