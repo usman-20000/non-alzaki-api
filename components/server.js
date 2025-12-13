@@ -90,10 +90,10 @@ app.delete("/delete-category/:id", async (req, res) => {
 
 app.post("/upload-product", async (req, res) => {
   try {
-    const { name, category, detail } = req.body;
+    const { name, category, detail, price } = req.body;
     const file = req.body.image;
 
-    if (!name || !category || !detail || !file) {
+    if (!name || !category || !price || !detail || !file) {
       return res.status(400).json({ error: "Product and image are required" });
     }
 
@@ -109,6 +109,7 @@ app.post("/upload-product", async (req, res) => {
       name,
       category,
       detail,
+      price,
       image: productResult.secure_url,
       public_id: productResult.public_id,
     });
