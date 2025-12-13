@@ -95,43 +95,41 @@ app.post("/upload-product", async (req, res) => {
 
     const parsedPrice = Number(price);
 
-    if (isNaN(parsedPrice)) {
+    if (!name || !category || !detail || !file || parsedPrice == null) {
+      return res.status(400).json({ error: "All fields are required" });
+    }
+
+    if (isNaN(parsedPrice) || parsedPrice < 0) {
       return res.status(400).json({ error: "Invalid price" });
     }
 
-
-    if (!name || !category || !price || !detail || !file) {
-      return res.status(400).json({ error: "Product and image are required" });
+    if (!mongoose.Types.ObjectId.isValid(category)) {
+      return res.status(400).json({ error: "Invalid category ID" });
     }
 
-    // Upload to Cloudinary
-    const productResult = await cloudinary.uploader.upload(file, {
+    const uploadResult = await cloudinary.uploader.upload(file, {
       folder: "mern_uploads",
     });
 
-    console.log("image_url:", productResult.secure_url);
-
-    // Save category in MongoDB
     const newProduct = new Product({
       name,
       category,
       detail,
       price: parsedPrice,
-      image: productResult.secure_url,
-      public_id: productResult.public_id,
+      image: uploadResult.secure_url,
+      public_id: uploadResult.public_id,
     });
 
     await newProduct.save();
 
-    // Send response once
     res.status(201).json({
       success: true,
       product: newProduct,
-      image_url: productResult.secure_url,
-      public_id: productResult.public_id,
+      image_url: uploadResult.secure_url,
+      public_id: uploadResult.public_id,
     });
   } catch (error) {
-    console.error(error);
+    console.error("UPLOAD ERROR:", error);
     res.status(500).json({ error: error.message });
   }
 });
