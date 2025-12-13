@@ -116,7 +116,7 @@ app.post("/upload-product", async (req, res) => {
       name,
       category,
       detail,
-      price,
+      price: parsedPrice,
       image: productResult.secure_url,
       public_id: productResult.public_id,
     });
