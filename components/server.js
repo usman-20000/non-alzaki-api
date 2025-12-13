@@ -1,6 +1,7 @@
 import "./conn.js";
 import express from "express";
 import cors from "cors";
+import mongoose from "mongoose";
 
 import Register from "../components/register.js";
 import Add from "./add.js";
