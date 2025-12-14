@@ -181,7 +181,8 @@ app.get('/products', async (req, res) => {
         name: p.name,
         image: p.image,
         category: categoryMap[p.category],
-        detail: p.detail
+        detail: p.detail,
+        price:p.price,
       }))
     );
 
