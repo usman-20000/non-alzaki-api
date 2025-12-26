@@ -18,7 +18,13 @@ const PORT = process.env.PORT || 3001;
 
 app.use(express.json());
 
-app.use(cors());
+app.use(cors({
+  origin: "https://noon-alzaki-restaurant.vercel.app",
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+}));
+
+app.options("*", cors());
 
 
 app.use(express.json({ limit: "100mb" }));
@@ -116,7 +122,7 @@ app.post("/upload-product", async (req, res) => {
       name,
       category,
       detail,
-      price:  parsedPrice,
+      price: parsedPrice,
       image: uploadResult.secure_url,
       public_id: uploadResult.public_id,
     });
@@ -158,6 +164,25 @@ app.get('/category', async (req, res) => {
   }
 });
 
+app.get('/product/:category', async (req, res) => {
+  const { category } = req.params;
+
+  try {
+    const cat = await Category.findOne({ category });
+
+    if (!cat) {
+      return res.status(404).json({ message: 'Category not found' });
+    }
+
+    const products = await Product.find({ category: cat._id })
+      .populate('category'); // <-- must match your Product schema ref name
+
+    res.json(products);
+  } catch (error) {
+    console.error('Error fetching products', error);
+    res.status(500).send('Internal Server Error');
+  }
+});
 
 
 app.get('/products', async (req, res) => {
@@ -182,7 +207,7 @@ app.get('/products', async (req, res) => {
         image: p.image,
         category: categoryMap[p.category],
         detail: p.detail,
-        price:p.price,
+        price: p.price,
       }))
     );
 
