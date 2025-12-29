@@ -19,7 +19,7 @@ const PORT = process.env.PORT || 3001;
 app.use(express.json());
 
 app.use(cors({
-  origin: "https://noon-alzaki-restaurant.vercel.app",
+  origin: ["http://localhost:3000", "https://noon-alzaki-restaurant.vercel.app"],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
 }));
@@ -141,6 +141,42 @@ app.post("/upload-product", async (req, res) => {
   }
 });
 
+app.post("/upload-product2", async (req, res) => {
+  try {
+    const { name, category, detail, price, image, public_id } = req.body;
+
+    if (!name || !category || !detail || !image || !public_id) {
+      return res.status(400).json({ error: "All fields are required" });
+    }
+
+    const parsedPrice = Number(price);
+
+    if (isNaN(parsedPrice) || parsedPrice < 0) {
+      return res.status(400).json({ error: "Invalid price" });
+    }
+
+    const newProduct = new Product({
+      name,
+      category,
+      detail,
+      price: parsedPrice,
+      image,
+      public_id,
+    });
+
+    await newProduct.save();
+
+    res.status(201).json({
+      success: true,
+      product: newProduct,
+    });
+
+  } catch (error) {
+    console.error("UPLOAD ERROR:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 
 // app.post('/category', async (req, res) => {
 //   try {
@@ -175,7 +211,7 @@ app.get('/product/:category', async (req, res) => {
     }
 
     const products = await Product.find({ category: cat._id })
-      .populate('category'); // <-- must match your Product schema ref name
+      .populate('category');
 
     res.json(products);
   } catch (error) {
