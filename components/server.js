@@ -68,6 +68,50 @@ app.post("/upload-category", async (req, res) => {
   }
 });
 
+app.patch("/update-category/:id", async (req, res) => {
+  try {
+    const categoryId = req.params.id;
+    const { category, image } = req.body; // image can be Base64 or URL
+
+    if (!category && !image) {
+      return res.status(400).json({ error: "Nothing to update" });
+    }
+
+    const updateData = {};
+
+    if (category) updateData.category = category;
+
+    if (image) {
+      // Upload new image to Cloudinary
+      const uploadResult = await cloudinary.uploader.upload_large(image, {
+        folder: "mern_uploads",
+      });
+
+      updateData.image = uploadResult.secure_url;
+      updateData.public_id = uploadResult.public_id;
+    }
+
+    // Update category in MongoDB
+    const updatedCategory = await Category.findByIdAndUpdate(
+      categoryId,
+      updateData,
+      { new: true } // return the updated document
+    );
+
+    if (!updatedCategory) {
+      return res.status(404).json({ error: "Category not found" });
+    }
+
+    res.status(200).json({
+      success: true,
+      category: updatedCategory,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.delete("/delete-category/:id", async (req, res) => {
   try {
     const { id } = req.params;
