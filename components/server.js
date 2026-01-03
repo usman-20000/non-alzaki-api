@@ -20,7 +20,7 @@ app.use(express.json());
 
 app.use(cors({
   origin: ["http://localhost:3000", "https://noon-alzaki-restaurant.vercel.app"],
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  methods: ["GET","PATCH", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
 }));
 
@@ -138,6 +138,32 @@ app.delete("/delete-category/:id", async (req, res) => {
   }
 });
 
+app.delete("/delete-product/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Find the product in MongoDB
+    const product = await Product.findById(id);
+    if (!product) {
+      return res.status(404).json({ error: "Product not found" });
+    }
+
+    // Delete image from Cloudinary
+    if (product.public_id) {
+      await cloudinary.uploader.destroy(product.public_id);
+      console.log("Deleted product image from Cloudinary:", product.public_id);
+    }
+
+    // Delete product from MongoDB
+    await Product.findByIdAndDelete(id);
+
+    res.json({ success: true, message: "Product and image deleted successfully" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 
 app.post("/upload-product", async (req, res) => {
   try {
@@ -184,6 +210,72 @@ app.post("/upload-product", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+app.patch("/update-product/:id", async (req, res) => {
+  try {
+    const productId = req.params.id;
+    const { name, category, detail, price, image } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+      return res.status(400).json({ error: "Invalid product ID" });
+    }
+
+    const product = await Product.findById(productId);
+    if (!product) return res.status(404).json({ error: "Product not found" });
+
+    const updateData = {};
+
+    if (name) updateData.name = name;
+    if (detail) updateData.detail = detail;
+
+    if (price !== undefined) {
+      const parsedPrice = Number(price);
+
+      if (isNaN(parsedPrice) || parsedPrice < 0) {
+        return res.status(400).json({ error: "Invalid price" });
+      }
+
+      updateData.price = parsedPrice;
+    }
+
+    if (category) {
+      if (!mongoose.Types.ObjectId.isValid(category)) {
+        return res.status(400).json({ error: "Invalid category ID" });
+      }
+      updateData.category = category;
+    }
+
+    // Handle image update
+    if (image) {
+      // delete old image if exists
+      if (product.public_id) {
+        await cloudinary.uploader.destroy(product.public_id);
+      }
+
+      const uploadResult = await cloudinary.uploader.upload(image, {
+        folder: "mern_uploads",
+      });
+
+      updateData.image = uploadResult.secure_url;
+      updateData.public_id = uploadResult.public_id;
+    }
+
+    const updatedProduct = await Product.findByIdAndUpdate(
+      productId,
+      updateData,
+      { new: true }
+    );
+
+    res.status(200).json({
+      success: true,
+      product: updatedProduct,
+    });
+  } catch (error) {
+    console.error("UPDATE PRODUCT ERROR:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 
 app.post("/upload-product2", async (req, res) => {
   try {
@@ -283,6 +375,7 @@ app.get('/products', async (req, res) => {
 
     res.json(
       products.map(p => ({
+        id:p._id,
         name: p.name,
         image: p.image,
         category: categoryMap[p.category],
